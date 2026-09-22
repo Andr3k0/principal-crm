@@ -6,7 +6,7 @@ La versione online usa una funzione Netlify ristretta alle sole operazioni CRM. 
 
 ## Stato della consegna
 
-- Interfaccia funzionante e verificata in modalità demo locale.
+- Interfaccia pronta per il workspace Supabase reale.
 - Codice per un accesso CRM e dati condivisi Supabase, schema SQL e autorizzazioni inclusi.
 - Connettore MCP locale per Codex incluso e verificato a livello di protocollo. Collegamento al progetto reale ancora da attivare.
 - Nessun progetto Supabase creato, nessun account dei soci creato, nessuna pubblicazione Netlify effettuata.
@@ -20,7 +20,7 @@ Richiede Node.js 22 o successivo. Dal terminale nella cartella del progetto:
 npm run dev
 ```
 
-Apri http://127.0.0.1:4173 e seleziona **Esplora la demo**. Il pulsante ⇄ in basso cambia socio simulato. I dati dimostrativi restano soltanto nel browser; non sono accessi veri e non si sincronizzano fra due computer. `npm run dev` serve la demo contenuta in `public/`.
+Per lo sviluppo locale configura le due variabili Supabase e avvia `npm run dev`. Il progetto richiede sempre il database reale: non contiene una modalità demo pubblicabile.
 
 ## Cosa include
 
@@ -43,7 +43,7 @@ Le condizioni nei testi sono quelle lette sul sito: **anteprima gratuita entro 4
 ## Attivare il database condiviso
 
 1. Crea un progetto Supabase dedicato. Nessun dato dimostrativo viene trasferito automaticamente.
-2. In Authentication crea un solo utente tecnico: `crm-workspace@principalsites.it`, con la password condivisa. Disabilita le nuove registrazioni pubbliche.
+2. In Authentication crea un solo utente tecnico: `info@principalsites.it`, con la password condivisa. Disabilita le nuove registrazioni pubbliche.
 3. Nel SQL Editor esegui `database/001_schema.sql` una sola volta.
 
 Solo utenti autenticati possono leggere o scrivere nel CRM. La email tecnica non viene mostrata nell’interfaccia.
@@ -77,7 +77,7 @@ Il progetto è predisposto per Netlify, senza dipendenze frontend a runtime.
    - `SUPABASE_URL`: `https://ID-PROGETTO.supabase.co`
    - `SUPABASE_ANON_KEY`: chiave pubblica publishable o anon del progetto.
 3. Build command: `npm run build`. Publish directory: `dist`. Il file `netlify.toml` contiene già questi valori e gli header di protezione.
-4. Esegui il deploy. Con entrambe le variabili presenti si mostra il login vero; senza variabili la build resta una demo esplicitamente indicata.
+4. Esegui il deploy. La build si interrompe se le variabili Supabase mancano.
 5. Prova i due accessi su due browser separati: crea un contatto con Andrea, aprilo con Marco, aggiungi una nota e verifica lo storico. I dati si aggiornano automaticamente ogni 30 secondi nelle viste non in modifica, oppure con ↻.
 
 Per una build locale configurata, copia `.env.example` in `.env`, inserisci soltanto URL e chiave pubblica e avvia:
