@@ -1,23 +1,4 @@
 import {validateContact} from './core.js';
-const KEY='crm-per-siti-demo-v2';
-export const demoProfiles=[{id:'crm-user',name:'PrincipalSites',color:'#73a7ff'}];
-function seed() {
- const ago=h=>new Date(Date.now()-h*3600000).toISOString();
- const rows=[['Studio Forma','Architettura','Padova','Anteprima 48h',1350,ago(30),'Alta'],['Osteria del Porto','Ristorazione','Chioggia','Da contattare',1350,null,'Alta'],['Atelier Verde','Design','Treviso','Preventivo',2200,null,'Media'],['Officina Nord','Automotive','Mestre','Contattato',1350,null,'Media'],['Casa Luce','Ospitalità','Verona','Brief ricevuto',1350,null,'Alta'],['Studio Arco','Professionisti','Vicenza','Da ricercare',1350,null,'Bassa']];
- return {contacts:rows.map((r,i)=>({id:crypto.randomUUID(),company:r[0],sector:r[1],city:r[2],stage:r[3],outcome:'In corso',owner_id:'crm-user',value:r[4],preview_started_at:r[5],priority:r[6],person:'Referente da verificare',email:`contatto${i+1}@esempio.it`,phone:'',website:'',source:'Esempio dimostrativo',source_url:'',need:'Presentare servizi e progetti con maggiore chiarezza',notes:'Dati inventati per provare il gestionale.',next_action:i===0?'Preparare l’anteprima':'Verificare il prossimo passo',next_at:ago(i===1?2:-24),preview_url:'',do_not_contact:false,created_by:'crm-user',updated_by:'crm-user',created_at:ago(72),updated_at:ago(i+1),version:1})),events:[],drafts:[]};
-}
-export class DemoStore {
- constructor(){this.demo=true;this.user=demoProfiles[0];try{this.db=JSON.parse(localStorage.getItem(KEY))||seed();}catch{this.db=seed();}this.persist();}
- persist(){localStorage.setItem(KEY,JSON.stringify(this.db));}
- async read(){return {contacts:this.db.contacts.filter(c=>!c.archived_at),events:this.db.events,drafts:this.db.drafts,profiles:demoProfiles};}
- async save(input,existing){const patch=validateContact(input);if(existing && this.db.contacts.find(c=>c.id===existing.id)?.version!==existing.version)throw new Error('Il contatto è cambiato. Aggiorna e riprova.');const row={...existing,...patch,id:existing?.id||crypto.randomUUID(),created_by:existing?.created_by||this.user.id,created_at:existing?.created_at||new Date().toISOString(),updated_by:this.user.id,updated_at:new Date().toISOString(),version:(existing?.version||0)+1};this.db.contacts=this.db.contacts.filter(c=>c.id!==row.id).concat(row);await this.event(row.id,existing?'Contatto aggiornato':'Contatto creato',existing?Object.keys(patch).filter(k=>existing?.[k]!==patch[k]).join(', '):row.company);this.persist();return row;}
- async event(contact_id,kind,body,origin='manual'){this.db.events.unshift({id:crypto.randomUUID(),contact_id,kind,body,origin,actor_id:this.user.id,created_at:new Date().toISOString()});this.persist();}
- async draft(contact_id,body,channel){this.db.drafts.unshift({id:crypto.randomUUID(),contact_id,body,channel,created_by:this.user.id,created_at:new Date().toISOString()});await this.event(contact_id,'Bozza salvata',channel);this.persist();}
- async updateDraft(d,body,channel){const row=this.db.drafts.find(x=>x.id===d.id);if(!row)throw new Error('Bozza non trovata.');row.body=body;row.channel=channel;this.persist();}
- async deleteDraft(d){this.db.drafts=this.db.drafts.filter(x=>x.id!==d.id);this.persist();}
- async archive(c){this.db.contacts.find(r=>r.id===c.id).archived_at=new Date().toISOString();await this.event(c.id,'Contatto archiviato',c.company);}
- async logout(){}
-}
 export class CloudStore {
  constructor(config){this.config=config;this.demo=false;this.session=JSON.parse(sessionStorage.getItem('crm-supabase-session')||'null');this.user={id:'workspace',name:'CRM condiviso'};}
  async login(email,password){const r=await fetch(`${this.config.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:this.config.key,'Content-Type':'application/json'},body:JSON.stringify({email:'crm-workspace@principalsites.it',password})});if(!r.ok)throw new Error('Password condivisa errata.');this.session=await r.json();sessionStorage.setItem('crm-supabase-session',JSON.stringify(this.session));}

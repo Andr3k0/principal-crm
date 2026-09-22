@@ -1,5 +1,5 @@
 import {STAGES,OUTCOMES,escapeHTML as e,safeURL,deadline,remaining,contextForAI,draftTemplate,csvExport} from './core.js';
-import {DemoStore,CloudStore} from './data.js';
+import {CloudStore} from './data.js';
 const app=document.querySelector('#app'),modal=document.querySelector('#modal');
 const configured=Boolean(window.CRM_CONFIG.url&&window.CRM_CONFIG.key);
 let store=configured?new CloudStore(window.CRM_CONFIG):null;
