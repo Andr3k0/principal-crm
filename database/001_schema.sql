@@ -18,6 +18,17 @@ create table public.events (id uuid primary key default gen_random_uuid(), conta
 create index events_contact on public.events(contact_id,created_at desc);
 create table public.drafts (id uuid primary key default gen_random_uuid(), contact_id uuid not null references public.contacts(id) on delete cascade, body text not null check(length(body) between 1 and 30000), channel text not null check(channel in ('Email','WhatsApp','LinkedIn')), created_by text not null default 'workspace', created_at timestamptz not null default now());
 alter table public.contacts enable row level security; alter table public.events enable row level security; alter table public.drafts enable row level security;
-revoke all on public.contacts,public.events,public.drafts from anon,authenticated;
--- Le scritture passano esclusivamente dalla funzione Netlify con service role e password condivisa.
+revoke all on public.contacts,public.events,public.drafts from anon;
+grant select,insert,update on public.contacts to authenticated;
+grant select,insert on public.events to authenticated;
+grant select,insert,update,delete on public.drafts to authenticated;
+create policy contacts_read on public.contacts for select to authenticated using (auth.uid() is not null);
+create policy contacts_write on public.contacts for insert to authenticated with check (auth.uid() is not null);
+create policy contacts_update on public.contacts for update to authenticated using (auth.uid() is not null) with check (auth.uid() is not null);
+create policy events_read on public.events for select to authenticated using (auth.uid() is not null);
+create policy events_write on public.events for insert to authenticated with check (auth.uid() is not null);
+create policy drafts_read on public.drafts for select to authenticated using (auth.uid() is not null);
+create policy drafts_write on public.drafts for insert to authenticated with check (auth.uid() is not null);
+create policy drafts_update on public.drafts for update to authenticated using (auth.uid() is not null) with check (auth.uid() is not null);
+create policy drafts_delete on public.drafts for delete to authenticated using (auth.uid() is not null);
 commit;

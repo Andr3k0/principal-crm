@@ -19,16 +19,16 @@ export class DemoStore {
  async logout(){}
 }
 export class CloudStore {
- constructor(config){this.config=config;this.demo=false;this.password=sessionStorage.getItem('crm-shared-password')||'';this.user={id:'workspace',name:'CRM condiviso'};}
- async login(email,password){this.password=password;sessionStorage.setItem('crm-shared-password',password);await this.request('contacts?select=id&limit=1');}
- async request(path,method='GET',body){const r=await fetch('/api/crm',{method:'POST',headers:{'x-crm-password':this.password,'Content-Type':'application/json'},body:JSON.stringify({path,method,body})});if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.message||await r.text()||'Impossibile salvare. Riprova.');}return r.status===204?null:r.json();}
- async all(path){const rows=[];for(let offset=0;;offset+=500){const page=await this.request(path+'&limit=500&offset='+offset);rows.push(...page);if(page.length<500)return rows;}}
+ constructor(config){this.config=config;this.demo=false;this.session=JSON.parse(sessionStorage.getItem('crm-supabase-session')||'null');this.user={id:'workspace',name:'CRM condiviso'};}
+ async login(email,password){const r=await fetch(`${this.config.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:this.config.key,'Content-Type':'application/json'},body:JSON.stringify({email:'crm-workspace@principalsites.it',password})});if(!r.ok)throw new Error('Password condivisa errata.');this.session=await r.json();sessionStorage.setItem('crm-supabase-session',JSON.stringify(this.session));}
+ async request(path,method='GET',body){if(!this.session?.access_token)throw new Error('Sessione scaduta. Accedi di nuovo.');const r=await fetch(`${this.config.url}/rest/v1/${path}`,{method,headers:{apikey:this.config.key,Authorization:`Bearer ${this.session.access_token}`,Prefer:'return=representation','Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(!r.ok)throw new Error((await r.text())||'Operazione non riuscita.');return r.status===204?null:r.json();}
+ async all(path){const rows=[];for(let offset=0;;offset+=500){const page=await this.request(`${path}&limit=500&offset=${offset}`);rows.push(...page);if(page.length<500)return rows;}}
  async read(){const [contacts,events,drafts]=await Promise.all([this.all('contacts?archived_at=is.null&order=updated_at.desc,id'),this.all('events?order=created_at.desc,id'),this.all('drafts?order=created_at.desc,id')]);return {contacts,events,drafts,profiles:[this.user]};}
- async save(input,existing){const row=validateContact(input);const result=await this.request(existing?`contacts?id=eq.${existing.id}&version=eq.${existing.version}`:'contacts',existing?'PATCH':'POST',row);if(!result?.length)throw new Error('Il contatto è stato modificato da un collega. Aggiorna e riprova.');return result[0];}
- async event(contact_id,kind,body){await this.request('events','POST',{contact_id,kind,body,origin:'manual'});}
- async draft(contact_id,body,channel){await this.request('drafts','POST',{contact_id,body,channel});}
+ async save(input,existing){const row={...validateContact(input),owner_id:'workspace',created_by:'workspace',updated_by:'workspace'};const result=await this.request(existing?`contacts?id=eq.${existing.id}&version=eq.${existing.version}`:'contacts',existing?'PATCH':'POST',row);if(!result?.length)throw new Error('Il contatto è stato modificato. Aggiorna e riprova.');return result[0];}
+ async event(contact_id,kind,body){await this.request('events','POST',{contact_id,kind,body,origin:'manual',actor_id:'workspace'});}
+ async draft(contact_id,body,channel){await this.request('drafts','POST',{contact_id,body,channel,created_by:'workspace'});}
  async updateDraft(d,body,channel){const r=await this.request(`drafts?id=eq.${d.id}`,'PATCH',{body,channel});if(!r?.length)throw new Error('Bozza non trovata.');}
- async deleteDraft(d){const r=await this.request(`drafts?id=eq.${d.id}`,'PATCH',{body:d.body,channel:d.channel});if(!r?.length)throw new Error('Bozza non trovata.');await this.request(`drafts?id=eq.${d.id}`,'DELETE');}
+ async deleteDraft(d){const r=await this.request(`drafts?id=eq.${d.id}`,'DELETE');if(!r?.length)throw new Error('Bozza non trovata.');}
  async archive(c){const r=await this.request(`contacts?id=eq.${c.id}&version=eq.${c.version}`,'PATCH',{archived_at:new Date().toISOString()});if(!r?.length)throw new Error('Il contatto è cambiato. Aggiorna prima di archiviarlo.');}
- async logout(){sessionStorage.removeItem('crm-shared-password');this.password='';}
+ async logout(){await fetch(`${this.config.url}/auth/v1/logout`,{method:'POST',headers:{apikey:this.config.key,Authorization:`Bearer ${this.session?.access_token||''}`}}).catch(()=>{});sessionStorage.removeItem('crm-supabase-session');this.session=null;}
 }

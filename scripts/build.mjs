@@ -1,6 +1,6 @@
 import { cp, mkdir, writeFile, rm } from 'node:fs/promises';
-const url = process.env.SUPABASE_URL || '';
-const key = process.env.SUPABASE_ANON_KEY || '';
+const url = process.env.PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const key = process.env.PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 if (!!url !== !!key) throw new Error('Configurare entrambe le variabili Supabase.');
 if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) throw new Error('SUPABASE_URL non valido.');
 if (key.startsWith('sb_secret_')) throw new Error('Usare solo una chiave pubblica, mai una chiave segreta.');

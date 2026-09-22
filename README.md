@@ -43,17 +43,10 @@ Le condizioni nei testi sono quelle lette sul sito: **anteprima gratuita entro 4
 ## Attivare il database condiviso
 
 1. Crea un progetto Supabase dedicato. Nessun dato dimostrativo viene trasferito automaticamente.
-2. Nel SQL Editor esegui `database/001_schema.sql` una sola volta. È una migrazione per un progetto nuovo.
-3. Nella gestione Authentication crea i due utenti personali con email e password proprie. Non usare un account condiviso. Disabilita le nuove registrazioni pubbliche nelle impostazioni Auth.
-4. Copia gli UUID reali dei due utenti e abilitali con questo SQL, sostituendo i segnaposto:
+2. In Authentication crea un solo utente tecnico: `crm-workspace@principalsites.it`, con la password condivisa. Disabilita le nuove registrazioni pubbliche.
+3. Nel SQL Editor esegui `database/001_schema.sql` una sola volta.
 
-```sql
-insert into public.profiles (id, name, color) values
- ('UUID_REALE_ANDREA', 'Andrea Crepaldi', '#73a7ff'),
- ('UUID_REALE_MARCO', 'Marco Castellin', '#d9a86c');
-```
-
-Solo gli utenti presenti in `profiles` possono leggere o scrivere nel CRM. L’accesso autenticato senza profilo non basta. Non assegnare la chiave `service_role` al browser o al connettore.
+Solo utenti autenticati possono leggere o scrivere nel CRM. La email tecnica non viene mostrata nell’interfaccia.
 
 Le policy RLS sono applicate a tutte le tabelle. I trigger ricavano l’autore dall’identità autenticata e impediscono di cambiare autore/data di creazione. I soci non possono modificare o cancellare lo storico e non possono creare altri soci. Gli aggiornamenti richiedono la versione letta per evitare sovrascritture involontarie. Il connettore AI mantiene gli stessi permessi.
 
@@ -63,20 +56,19 @@ Le policy RLS sono applicate a tutte le tabelle. I trigger ricavano l’autore d
 
 1. Crea un progetto Supabase vuoto.
 2. Esegui `database/001_schema.sql` nel SQL Editor.
-3. Recupera URL progetto e chiave `service_role` da Supabase. La chiave service role va usata solo nelle variabili Netlify, mai in `public/`.
+3. Recupera URL progetto e chiave pubblica `anon` da Supabase. Non usare chiavi private o server.
 4. Crea un repository Git con il contenuto di questa cartella e collegalo a Netlify.
 5. In Netlify imposta queste variabili di ambiente:
 
-   - `SUPABASE_URL`: URL del progetto;
-   - `SUPABASE_SERVICE_ROLE_KEY`: chiave server Supabase;
-   - `CRM_SHARED_PASSWORD`: password unica condivisa del CRM.
+   - `PUBLIC_SUPABASE_URL`: URL del progetto;
+   - `PUBLIC_SUPABASE_ANON_KEY`: chiave pubblica anon;
 
 6. Imposta build command `npm run build` e publish directory `dist`.
 7. Pubblica il sito e apri l’URL Netlify.
-8. Accedi con la password condivisa. Il campo email mostrato nella vecchia schermata di accesso non ha più funzione operativa e verrà rimosso nel prossimo passaggio grafico.
+8. Accedi con la sola password condivisa.
 9. Prova creazione, modifica, archiviazione e lettura dello storico da due browser diversi usando la stessa password.
 
-La password condivisa protegge il frontend e il proxy Netlify; cambiala dalle variabili di ambiente Netlify quando vuoi invalidare l’accesso precedente.
+La password condivisa è la password dell’utente tecnico Supabase Auth; cambiala nella gestione Authentication.
 
 Il progetto è predisposto per Netlify, senza dipendenze frontend a runtime.
 
